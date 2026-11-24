@@ -27,3 +27,29 @@
 - 从深链直接进入楼中楼详情时，主列表的即时移除依赖控制器监听；没有主列表实例时只能靠下次刷新。
 - 切换账号/登出会作废所有会话与在途任务；“已屏蔽 N 条”归零属预期。
 - 批量删评只开放给能确认归属的普通视频（type=1）；动态、专栏、番剧评论区需要后续适配。
+
+## 发布流程（PiliPlus EE）
+
+仓库：<https://github.com/umeabc/PiliPlus>，分支 `ee`，`upstream` 指向上游 `bggRGjQaUbCoE/PiliPlus`。
+
+```bash
+# 1) 同步上游
+git fetch upstream main && git checkout ee && git merge upstream/main
+
+# 2) 版本号：versionName = 上游版本 + "-e<N>"，versionCode 每次发布 +1
+flutter build apk --release --target-platform android-arm64 \
+  --build-name=2.2.1-e1 --build-number=1 --no-pub
+
+# 3) 归档与校验
+cp build/app/outputs/flutter-apk/app-release.apk dist/PiliPlus-EE-<版本>-arm64.apk
+sha256sum dist/*.apk > dist/SHA256SUMS.txt
+
+# 4) 打 tag 并发布（凭据从 Git Credential Manager 读取）
+git tag -f v<版本> -m "PiliPlus EE <版本>" && git push origin v<版本>
+bash tool/publish_release.sh
+```
+
+- 签名密钥：`android/app/key.jks`（别名 `piliplus-ee`，RSA 4096，有效期 100 年），口令在 `android/key.properties`；两者都被 `.gitignore` 排除。备份放在仓库外的 `.keystore-backup/`。
+- **密钥或口令丢失就无法再覆盖升级已装版本**，请离线备份两份。
+- 应用标识固定为 `com.umeabc.piliplus`（debug 为 `.debug`），不要随意修改，否则用户侧会变成“新应用”并丢失本地设置与账本。
+- 已发布：<https://github.com/umeabc/PiliPlus/releases/tag/v2.2.1-e1>
