@@ -1,3 +1,6 @@
+# Private local build scratch (never contains distributable source)
+.local-tmp/
+
 # Miscellaneous
 *.class
 *.log
@@ -152,3 +155,12 @@ dist
 test*
 !/test/
 !/test/**
+
+# Local build scratch and published artifacts
+dist/
+build.log
+build-release.log
+.tmp/
+
+# Release signing material (never commit)
+.keystore-backup/

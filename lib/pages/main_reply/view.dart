@@ -11,6 +11,7 @@ import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/pages/common/fab_mixin.dart';
 import 'package:PiliPlus/pages/common/reply/reply_footer_mixin.dart';
+import 'package:PiliPlus/pages/dafeiyu/widgets.dart';
 import 'package:PiliPlus/pages/main_reply/controller.dart';
 import 'package:PiliPlus/pages/video/reply/widgets/reply_item_grpc.dart';
 import 'package:PiliPlus/pages/video/reply_reply/view.dart';
@@ -79,6 +80,12 @@ class _MainReplyPageState extends State<MainReplyPage>
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 buildReplyHeader(),
+                SliverToBoxAdapter(
+                  child: DfyBanner(
+                    oid: controller.oid,
+                    type: controller.replyType,
+                  ),
+                ),
                 Obx(() => _buildBody(controller.loadingState.value)),
               ],
             ),
@@ -148,7 +155,23 @@ class _MainReplyPageState extends State<MainReplyPage>
                   );
                 },
               )
-            : emptyWidget(),
+            : SliverMainAxisGroup(
+                slivers: [
+                  emptyWidget(),
+                  if (!controller.isEnd)
+                    SliverToBoxAdapter(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: FilledButton.tonal(
+                            onPressed: controller.onLoadMore,
+                            child: const Text('继续加载评论'),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
       Error(:final errMsg) => HttpError(
         errMsg: errMsg,
         onReload: controller.onReload,

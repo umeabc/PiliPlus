@@ -43,6 +43,9 @@ class VideoReplyReplyController extends ReplyController
   @override
   int replyType;
 
+  @override
+  bool get dfyOwnsSubject => false;
+
   bool hasRoot = false;
   final firstFloor = Rxn<ReplyInfo>();
 

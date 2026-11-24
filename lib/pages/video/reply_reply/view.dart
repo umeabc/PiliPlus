@@ -14,6 +14,7 @@ import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/pages/common/reply/reply_footer_mixin.dart';
 import 'package:PiliPlus/pages/common/slide/common_slide_page.dart';
+import 'package:PiliPlus/pages/dafeiyu/widgets.dart';
 import 'package:PiliPlus/pages/video/reply/widgets/reply_item_grpc.dart';
 import 'package:PiliPlus/pages/video/reply_reply/controller.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
@@ -195,6 +196,9 @@ class _VideoReplyReplyPanelState extends State<VideoReplyReplyPanel>
         controller: scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
+          SliverToBoxAdapter(
+            child: DfyBanner(oid: widget.oid, type: widget.replyType),
+          ),
           if (!isDialogue) ...[
             if ((widget.firstFloor ?? controller.firstFloor.value)
                 case final firstFloor?)

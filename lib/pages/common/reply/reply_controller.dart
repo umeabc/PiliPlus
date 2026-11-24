@@ -4,6 +4,8 @@ import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
     show MainListReply, ReplyInfo, SubjectControl, Mode, CursorReply;
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/reply.dart';
+import 'package:PiliPlus/services/dafeiyu/models.dart';
+import 'package:PiliPlus/services/dafeiyu/service.dart';
 import 'package:PiliPlus/models/common/reply/reply_sort_type.dart';
 import 'package:PiliPlus/models_new/dynamic/dyn_mention/item.dart';
 import 'package:PiliPlus/pages/common/common_list_controller.dart';
@@ -115,6 +117,28 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
   SubjectControl? subjectControl;
   late bool hasUpTop = false;
 
+  bool get dfyOwnsSubject => true;
+  DfySession? _dfySession;
+
+  void _attachDfySession() {
+    final session = DfyService.instance.sessionFor(oid, replyType);
+    if (identical(session, _dfySession)) return;
+    _dfySession?.removeListener(_dfyChanged);
+    _dfySession = session;
+    session.addListener(_dfyChanged);
+  }
+
+  void _dfyChanged() {
+    if (isClosed || !dfyOwnsSubject) return;
+    final session = _dfySession;
+    final data = loadingState.value.dataOrNull;
+    if (session == null || data == null) return;
+    final hidden = session.hiddenRootIds;
+    final before = data.length;
+    data.removeWhere((item) => hidden.contains(item.id.toString()));
+    if (before != data.length) loadingState.refresh();
+  }
+
   @override
   bool get hasFooter => true;
 
@@ -161,6 +185,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
 
   @override
   bool customHandleResponse(bool isRefresh, Success<R> response) {
+    _attachDfySession();
     final data = response.response as MainListReply;
     count.value = data.subjectControl.count.toInt();
     if (isRefresh) {
@@ -370,6 +395,10 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
 
   @override
   void onClose() {
+    _dfySession?.removeListener(_dfyChanged);
+    if (dfyOwnsSubject && _dfySession != null) {
+      DfyService.instance.resetSubject(oid, replyType);
+    }
     savedReplies.clear();
     super.onClose();
   }

@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:PiliPlus/common/widgets/custom_icon.dart';
 import 'package:PiliPlus/grpc/reply.dart';
 import 'package:PiliPlus/models/common/reply/reply_sort_type.dart';
+import 'package:PiliPlus/pages/dafeiyu/view.dart';
 import 'package:PiliPlus/pages/setting/models/model.dart';
 import 'package:PiliPlus/pages/setting/widgets/slider_dialog.dart';
 import 'package:PiliPlus/pages/video/reply/widgets/reply_item_grpc.dart';
@@ -17,6 +18,14 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'package:material_ui/material_ui.dart' hide RefreshIndicator;
 
 List<SettingsModel> get replySettings => [
+  NormalModel(
+    title: '大肥鱼评论屏蔽',
+    subtitle: '本地关键词过滤；批量操作需手动预览确认',
+    leading: const Icon(Icons.shield_outlined),
+    onTap: (context, setState) => Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const DfySettingsPage()),
+    ),
+  ),
   const SwitchModel(
     title: '显示视频评论',
     leading: Icon(MdiIcons.commentTextOutline),

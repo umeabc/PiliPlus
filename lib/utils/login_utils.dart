@@ -5,6 +5,7 @@ import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/user.dart';
 import 'package:PiliPlus/main.dart' show webViewEnvironment;
 import 'package:PiliPlus/services/account_service.dart';
+import 'package:PiliPlus/services/dafeiyu/service.dart';
 import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/accounts/account.dart';
 import 'package:PiliPlus/utils/linux_cookie_manager.dart';
@@ -43,6 +44,7 @@ abstract final class LoginUtils {
   }
 
   static Future<void> onLoginMain() async {
+    DfyService.instance.accountChanged();
     final account = Accounts.main;
     final res = await UserHttp.userInfo();
     if (res case Success(:final response)) {
@@ -79,6 +81,7 @@ abstract final class LoginUtils {
   }
 
   static Future<void> onLogoutMain() {
+    DfyService.instance.accountChanged();
     Get.find<AccountService>()
       ..face.value = ''
       ..isLogin.value = false;

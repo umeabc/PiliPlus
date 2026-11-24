@@ -5,6 +5,8 @@ import 'package:PiliPlus/grpc/grpc_req.dart';
 import 'package:PiliPlus/grpc/url.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/utils/global_data.dart';
+import 'package:PiliPlus/services/dafeiyu/models.dart';
+import 'package:PiliPlus/services/dafeiyu/service.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:fixnum/fixnum.dart';
 
@@ -104,64 +106,72 @@ abstract final class ReplyGrpc {
         (enableFilter && replyRegExp.hasMatch(reply.content.message));
   }
 
+  static bool _dfyCurrent(DfySession session, int generation) =>
+      session.accountId == DfyService.instance.accountId &&
+      identical(
+        session,
+        DfyService.instance.peekSession(session.oid, session.type),
+      ) &&
+      session.generation == generation;
+
   static Future<LoadingState<MainListReply>> mainList({
     required int type,
     required int oid,
     Int64? rpid,
     required Mode mode,
     required String? offset,
-    // Int64? cursorNext,
   }) async {
-    final res = await GrpcReq.request(
-      GrpcUrl.mainList,
-      MainListReq(
-        oid: Int64(oid),
-        type: Int64(type),
-        rpid: rpid,
-        // cursor: CursorReq(
-        //   mode: mode,
-        //   next: cursorNext,
-        // ),
-        mode: mode,
-        pagination: offset == null ? null : FeedPagination(offset: offset),
-      ),
-      MainListReply.fromBuffer,
-    );
-    if (res case Success(:final response)) {
-      // keyword filter
-      if (response.hasUpTop()) {
-        final topReply = response.upTop;
-        if (needRemoveGrpc(topReply)) {
-          response.clearUpTop();
-        } else {
-          topReply.replies.removeWhere(needRemoveGrpc);
-        }
-      }
-
-      if (response.replies.isNotEmpty) {
-        response.replies.removeWhere((item) {
-          final hasMatch = needRemoveGrpc(item);
-          if (!hasMatch && item.replies.isNotEmpty) {
-            item.replies.removeWhere(needRemoveGrpc);
+    final dfy = DfyService.instance;
+    if (offset == null) dfy.resetSubject(oid, type);
+    final session = dfy.sessionFor(oid, type);
+    final generation = session.generation;
+    final seenOffsets = <String>{?offset};
+    var next = offset;
+    // Bound empty-page lookahead; never recurse indefinitely when all comments match.
+    for (var page = 0; ; page++) {
+      final res = await GrpcReq.request(
+        GrpcUrl.mainList,
+        MainListReq(
+          oid: Int64(oid),
+          type: Int64(type),
+          rpid: rpid,
+          mode: mode,
+          pagination: next == null ? null : FeedPagination(offset: next),
+        ),
+        MainListReply.fromBuffer,
+      );
+      // A newer load owns this subject: return the raw payload unfiltered
+      // rather than replacing the page with an error.
+      if (!_dfyCurrent(session, generation)) return res;
+      if (res case Success(:final response)) {
+        dfy.filterMain(response, oid: oid, type: type);
+        // Keep existing PiliPlus blacklist/goods/custom regex filters independent.
+        if (response.hasUpTop()) {
+          final topReply = response.upTop;
+          if (needRemoveGrpc(topReply)) {
+            response.clearUpTop();
+          } else {
+            topReply.replies.removeWhere(needRemoveGrpc);
           }
-          return hasMatch;
+        }
+        response.replies.removeWhere((item) {
+          final hit = needRemoveGrpc(item);
+          if (!hit) item.replies.removeWhere(needRemoveGrpc);
+          return hit;
         });
-      }
-
-      if (response.replies.isEmpty && !response.hasUpTop()) {
-        final offset = response.paginationReply.nextOffset;
-        if (offset.isNotEmpty && !response.cursor.isEnd) {
-          return mainList(
-            type: type,
-            oid: oid,
-            rpid: rpid,
-            mode: mode,
-            offset: offset,
-          );
+        final newOffset = response.paginationReply.nextOffset;
+        if (response.replies.isEmpty &&
+            !response.hasUpTop() &&
+            !response.cursor.isEnd &&
+            newOffset.isNotEmpty &&
+            seenOffsets.add(newOffset) &&
+            page < 7) {
+          next = newOffset;
+          continue;
         }
       }
+      return res;
     }
-    return res;
   }
 
   static Future<LoadingState<DetailListReply>> detailList({
@@ -173,6 +183,9 @@ abstract final class ReplyGrpc {
     required String? offset,
     Map<Int64, ReplyInfo>? removed,
   }) async {
+    final dfy = DfyService.instance;
+    final session = dfy.sessionFor(oid, type);
+    final generation = session.generation;
     final res = await GrpcReq.request(
       GrpcUrl.detailList,
       DetailListReq(
@@ -186,16 +199,31 @@ abstract final class ReplyGrpc {
       ),
       DetailListReply.fromBuffer,
     );
-    return res
-      ..dataOrNull?.root.replies.removeWhere(
-        removed == null
-            ? needRemoveGrpc
-            : (i) {
-                final flag = needRemoveGrpc(i);
-                if (flag) removed[i.id] = i;
-                return flag;
-              },
+    // A newer load owns this subject: return the raw payload unfiltered
+    // rather than replacing the page with an error.
+    if (!_dfyCurrent(session, generation)) return res;
+    if (res case Success(:final response)) {
+      final owner = response.subjectControl.upMid.toString();
+      if (owner != '0') session.ownerMid = owner;
+      // Detail payloads may be opened directly, without a main-list pin registry.
+      final control = response.root.replyControl;
+      if (control.isUpTop || control.isAdminTop || control.isVoteTop) {
+        session.pinRoot(root.toString());
+      }
+      dfy.filterChildren(
+        response.root.replies,
+        oid: oid,
+        type: type,
+        rootId: root.toString(),
+        removed: removed,
       );
+      response.root.replies.removeWhere((item) {
+        final hit = needRemoveGrpc(item);
+        if (hit) removed?[item.id] = item;
+        return hit;
+      });
+    }
+    return res;
   }
 
   static Future<LoadingState<FoldListResp>> foldList({
@@ -203,6 +231,9 @@ abstract final class ReplyGrpc {
     required int oid,
     required FeedPagination pagination,
   }) async {
+    final dfy = DfyService.instance;
+    final session = dfy.sessionFor(oid, type);
+    final generation = session.generation;
     final res = await GrpcReq.request(
       GrpcUrl.foldList,
       FoldListReq(
@@ -212,7 +243,40 @@ abstract final class ReplyGrpc {
       ),
       FoldListResp.fromBuffer,
     );
-    return res..dataOrNull?.replies.removeWhere(needRemoveGrpc);
+    // A newer load owns this subject: return the raw payload unfiltered
+    // rather than replacing the page with an error.
+    if (!_dfyCurrent(session, generation)) return res;
+    if (res case Success(:final response)) {
+      final roots = response.replies
+          .where((r) => r.root == Int64.ZERO)
+          .toList();
+      final main = MainListReply(replies: roots);
+      dfy.filterMain(main, oid: oid, type: type);
+      final keptRoots = main.replies.map((r) => r.id).toSet();
+      response.replies.removeWhere(
+        (r) => r.root == Int64.ZERO && !keptRoots.contains(r.id),
+      );
+      // Fold responses can contain either roots or children. Preserve policy semantics.
+      final groups = <String, List<ReplyInfo>>{};
+      for (final reply in response.replies.where((r) => r.root != Int64.ZERO)) {
+        groups.putIfAbsent(reply.root.toString(), () => []).add(reply);
+      }
+      for (final entry in groups.entries) {
+        final originalIds = entry.value.map((r) => r.id).toSet();
+        dfy.filterChildren(
+          entry.value,
+          oid: oid,
+          type: type,
+          rootId: entry.key,
+        );
+        final keptIds = entry.value.map((r) => r.id).toSet();
+        response.replies.removeWhere(
+          (r) => originalIds.contains(r.id) && !keptIds.contains(r.id),
+        );
+      }
+      response.replies.removeWhere(needRemoveGrpc);
+    }
+    return res;
   }
 
   static Future<LoadingState<DialogListReply>> dialogList({
@@ -222,6 +286,9 @@ abstract final class ReplyGrpc {
     required int dialog,
     required String? offset,
   }) async {
+    final dfy = DfyService.instance;
+    final session = dfy.sessionFor(oid, type);
+    final generation = session.generation;
     final res = await GrpcReq.request(
       GrpcUrl.dialogList,
       DialogListReq(
@@ -233,7 +300,21 @@ abstract final class ReplyGrpc {
       ),
       DialogListReply.fromBuffer,
     );
-    return res..dataOrNull?.replies.removeWhere(needRemoveGrpc);
+    // A newer load owns this subject: return the raw payload unfiltered
+    // rather than replacing the page with an error.
+    if (!_dfyCurrent(session, generation)) return res;
+    if (res case Success(:final response)) {
+      final owner = response.subjectControl.upMid.toString();
+      if (owner != '0') session.ownerMid = owner;
+      dfy.filterChildren(
+        response.replies,
+        oid: oid,
+        type: type,
+        rootId: root.toString(),
+      );
+      response.replies.removeWhere(needRemoveGrpc);
+    }
+    return res;
   }
 
   static Future<LoadingState<SearchItemReply>> searchItem({

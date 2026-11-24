@@ -5,16 +5,18 @@
 
 
 <div align="center">
-    <h1>PiliPlus</h1>
+    <h1>PiliPlus Enhanced Edition</h1>
 <div align="center">
 
 中文 | [English](README.en.md)
 
-![GitHub repo size](https://img.shields.io/github/repo-size/bggRGjQaUbCoE/PiliPlus) 
-![GitHub Repo stars](https://img.shields.io/github/stars/bggRGjQaUbCoE/PiliPlus) 
+![GitHub repo size](https://img.shields.io/github/repo-size/umeabc/PiliPlus) 
+![GitHub Repo stars](https://img.shields.io/github/stars/umeabc/PiliPlus) 
 ![GitHub all releases](https://img.shields.io/github/downloads/bggRGjQaUbCoE/PiliPlus/total) 
 </div>
-    <p>使用Flutter开发的BiliBili第三方客户端</p>
+    <p>使用Flutter开发的BiliBili第三方客户端 · 个人增强版</p>
+    <p>本仓库是 <a href="https://github.com/bggRGjQaUbCoE/PiliPlus">PiliPlus</a> 的个人 fork，跟随上游更新，
+    并加入「大肥鱼评论屏蔽」等功能，详见 <a href="DAFEIYU.md">DAFEIYU.md</a>。</p>
     
 <img src="assets/screenshots/510shots_so.png" width="32%" alt="home" />
 <img src="assets/screenshots/174shots_so.png" width="32%" alt="home" />

@@ -1,3 +1,4 @@
+import java.io.File
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 allprojects {
@@ -38,6 +39,12 @@ subprojects {
                     jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
                 }
             }
+
+            // CMake staging must stay inside the writable project tree: the
+            // default (.cxx inside the pub cache) is not writable here.
+            androidExtension.externalNativeBuild?.cmake?.setBuildStagingDirectory(
+                File(rootProject.layout.buildDirectory.get().asFile, "cxx/${project.name}")
+            )
 
             val pluginCompileSdkStr = androidExtension.compileSdkVersion
             val pluginCompileSdk = pluginCompileSdkStr

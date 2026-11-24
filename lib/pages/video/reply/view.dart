@@ -11,6 +11,7 @@ import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/pages/common/fab_mixin.dart';
 import 'package:PiliPlus/pages/common/reply/reply_footer_mixin.dart';
 import 'package:PiliPlus/pages/common/reply/vote/reply_vote_item.dart';
+import 'package:PiliPlus/pages/dafeiyu/widgets.dart';
 import 'package:PiliPlus/pages/video/reply/controller.dart';
 import 'package:PiliPlus/pages/video/reply/widgets/reply_item_grpc.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
@@ -113,6 +114,12 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
                   }),
                 ),
               ),
+              SliverToBoxAdapter(
+                child: DfyBanner(
+                  oid: controller.oid,
+                  type: controller.replyType,
+                ),
+              ),
               Obx(() => _buildBody(controller.loadingState.value)),
             ],
           ),
@@ -205,7 +212,23 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
           );
         }
 
-        final child = emptyWidget();
+        final child = SliverMainAxisGroup(
+          slivers: [
+            emptyWidget(),
+            if (!controller.isEnd)
+              SliverToBoxAdapter(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: FilledButton.tonal(
+                      onPressed: controller.onLoadMore,
+                      child: const Text('继续加载评论'),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
         if (controller.voteCard case final voteCard?) {
           return SliverMainAxisGroup(
             slivers: [

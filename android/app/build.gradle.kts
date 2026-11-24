@@ -17,6 +17,11 @@ if (!isBuiltInKotlinEnabled) {
     apply(plugin = "org.jetbrains.kotlin.android")
 }
 
+// PiliPlus Enhanced Edition keeps a permanent, distinct application id so it can
+// coexist with the upstream app and never collides with it on upgrades.
+val eeApplicationId = "com.umeabc.piliplus"
+val eeAppName = "PiliPlus EE"
+
 android {
     namespace = "com.example.piliplus"
     compileSdk = 37
@@ -28,7 +33,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.piliplus"
+        applicationId = eeApplicationId
         minSdk = flutter.minSdkVersion
         targetSdk = 37
         versionCode = flutter.versionCode
@@ -55,14 +60,13 @@ android {
     }
 
     buildFeatures {
-        if (project.hasProperty("dev")) {
-            resValues = true
-        }
+        resValues = true
     }
 
     buildTypes {
         all {
             signingConfig = config ?: signingConfigs["debug"]
+            resValue("string", "app_name", eeAppName)
         }
         release {
             if (project.hasProperty("dev")) {
