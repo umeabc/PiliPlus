@@ -17,6 +17,7 @@ on:
         type: string
 
 jobs:
+  permissions: write-all
   build-mac-app:
     name: Release Mac
     runs-on: macos-26
