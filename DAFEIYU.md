@@ -64,3 +64,17 @@ bash tool/publish_release.sh
   - 二进制名（`piliplus.exe`）与 Linux `APPLICATION_ID` 保持上游值，避免破坏打包脚本与 `.desktop` 关联。
 - 构建途径：GitHub Actions（fork 的 `main` 分支已注册 5 个 workflow）。本机只能产出 Android；Windows/Linux 在 GitHub 云端 runner 构建，macOS 需 macOS runner，iOS 需 Apple 签名证书（未配置）。
 - 触发方式：Actions → 选择 workflow → Run workflow（分支 `main`）→ 运行结束后下载 artifact。
+
+### 各平台产物（v2.2.1-e1）
+
+| 平台 | 文件 | 说明 |
+|---|---|---|
+| Android | `PiliPlus-EE-2.2.1-e1-arm64.apk` | 本地构建，专属签名 |
+| Windows | `PiliPlus_EE_2.2.1-e1_windows_x64_portable.zip` / `_setup.exe` | GitHub Actions `win_x64.yml` |
+| Linux | `_linux_amd64.AppImage` / `.deb` / `.rpm` / `.tar.gz` | GitHub Actions `linux_x64.yml` |
+| macOS | `PiliPlus_macos_2.2.1-e1.dmg` | GitHub Actions `mac.yml`（未签名） |
+| iOS | 无 | 需要 Apple 开发者证书与描述文件，未配置 |
+
+CI 产物的版本号字符串沿用上游脚本（`2.2.1+<提交数>`），归档时统一改名为 `2.2.1-e1`；`SHA256SUMS.txt` 覆盖全部资产。
+
+桌面端与移动端共用同一份 Dart 业务代码，功能一致；Android 独有的是 `resValue` 应用名与专属签名。
