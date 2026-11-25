@@ -40,7 +40,7 @@ jobs:
       - name: Prepare Upload
         run: |
           npm install --global create-dmg
-          create-dmg build/macos/Build/Products/Release/PiliPlus.app || true
+          create-dmg "build/macos/Build/Products/Release/PiliPlus EE.app" || true
         continue-on-error: true
 
       - name: Rename DMG
