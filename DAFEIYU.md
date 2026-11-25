@@ -53,3 +53,14 @@ bash tool/publish_release.sh
 - **密钥或口令丢失就无法再覆盖升级已装版本**，请离线备份两份。
 - 应用标识固定为 `com.umeabc.piliplus`（debug 为 `.debug`），不要随意修改，否则用户侧会变成“新应用”并丢失本地设置与账本。
 - 已发布：<https://github.com/umeabc/PiliPlus/releases/tag/v2.2.1-e1>
+
+## 多客户端（与上游同步）
+
+本 fork 与上游共用同一份 Dart 代码，功能天然覆盖 Android / Windows / Linux / macOS / iOS；差异只在平台壳层。
+
+- 上游 `2.2.1` 发布矩阵：Android（arm64 / armeabi-v7a / x86_64）、iOS `.ipa`、Linux（AppImage / deb / rpm / tar.gz）、macOS `.dmg`、Windows（portable zip / setup exe）。
+- 同步状态：`ee` 与 `main` 已对齐上游 `217fb54`（0 提交落后）；`upstream` 远端指向 `bggRGjQaUbCoE/PiliPlus`。
+- 平台显示名已统一为 **PiliPlus EE**：Android `app_name`、Windows 窗口标题与 `Runner.rc`、Linux GTK 标题、macOS `PRODUCT_NAME`、iOS `CFBundleDisplayName`。
+  - 二进制名（`piliplus.exe`）与 Linux `APPLICATION_ID` 保持上游值，避免破坏打包脚本与 `.desktop` 关联。
+- 构建途径：GitHub Actions（fork 的 `main` 分支已注册 5 个 workflow）。本机只能产出 Android；Windows/Linux 在 GitHub 云端 runner 构建，macOS 需 macOS runner，iOS 需 Apple 签名证书（未配置）。
+- 触发方式：Actions → 选择 workflow → Run workflow（分支 `main`）→ 运行结束后下载 artifact。
